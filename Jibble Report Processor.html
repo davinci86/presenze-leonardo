@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Presenze — Leonardo SRL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --ink:     #111318;
+  --paper:   #f7f6f2;
+  --surface: #ffffff;
+  --rule:    #e2e0d8;
+  --muted:   #888580;
+  --teal:    #0e7c6b;
+  --teal-lt: #e6f4f1;
+  --amber:   #b45309;
+  --amber-lt:#fef3e2;
+  --red:     #c0392b;
+  --red-lt:  #fdecea;
+  --violet:  #5b3fd4;
+  --violet-lt:#eeebfc;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── MASTHEAD ── */
+.masthead {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 20px;
+  border-bottom: 3px solid var(--teal);
+}
+.masthead-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.masthead-sep { width: 1px; height: 20px; background: #333; }
+.masthead-title { font-size: 13px; color: #aaa; font-weight: 400; }
+.masthead-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #555;
+  letter-spacing: 1px;
+}
+
+/* ── LAYOUT ── */
+.page { max-width: 960px; margin: 0 auto; padding: 36px 24px 60px; }
+
+/* ── SECTION LABEL ── */
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ── UPLOAD AREA ── */
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.upload-zone {
+  background: var(--surface);
+  border: 2px dashed var(--rule);
+  border-radius: 10px;
+  padding: 28px 24px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+  text-align: center;
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--teal);
+  background: var(--teal-lt);
+}
+.upload-zone.loaded {
+  border-style: solid;
+  border-color: var(--teal);
+  background: var(--teal-lt);
+}
+.upload-icon { font-size: 28px; margin-bottom: 8px; }
+.upload-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.upload-sub { font-size: 11px; color: var(--muted); }
+.upload-filename {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--teal);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.card-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.card-head h3 { font-size: 13px; font-weight: 600; }
+.card-head .tag {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--teal-lt);
+  color: var(--teal);
+  font-weight: 500;
+}
+
+/* ── FIELD ── */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--ink);
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--teal); }
+
+/* ── GRID ── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ── EMPLOYEE TABLE ── */
+.emp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.emp-table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.emp-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0ede6;
+  vertical-align: middle;
+}
+.emp-table tr:last-child td { border-bottom: none; }
+.emp-table input[type="number"] {
+  width: 72px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--mono);
+  text-align: center;
+  color: var(--teal);
+}
+.emp-table input[type="number"]:focus { outline: none; border-color: var(--teal); }
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.badge-ft { background: var(--teal-lt); color: var(--teal); }
+.badge-pt { background: var(--amber-lt); color: var(--amber); }
+
+/* ── CLOSURE ── */
+.closure-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--violet-lt); border: 1px solid #c5bbf0;
+  border-radius: 5px; padding: 3px 9px;
+  font-size: 11px; font-family: var(--mono); color: var(--violet);
+}
+.chip button { background: none; border: none; cursor: pointer; color: #aaa; font-size: 12px; padding: 0; line-height: 1; }
+.chip button:hover { color: var(--red); }
+.chip-empty { font-size: 11px; color: var(--muted); font-style: italic; align-self: center; }
+
+/* ── HOLIDAY CHIPS ── */
+.hol-chip {
+  display: inline-block;
+  background: var(--red-lt); border: 1px solid #f0c4be;
+  border-radius: 4px; padding: 3px 9px;
+  font-size: 11px; font-family: var(--mono); color: var(--red);
+}
+
+/* ── INFO BOX ── */
+.infobox {
+  background: var(--amber-lt);
+  border: 1px solid #f0d090;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  display: flex; gap: 10px;
+}
+.infobox .ico { flex-shrink: 0; }
+
+/* ── CCNL SUMMARY ── */
+.ccnl-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.ccnl-item {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.ccnl-item .val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--teal);
+}
+.ccnl-item .lbl {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.ccnl-item .sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 24px;
+  border-radius: 7px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none;
+  font-family: var(--sans);
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--teal); color: white; }
+.btn-primary:hover { background: #0a6859; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.btn-ghost:hover { border-color: var(--ink); }
+.btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 6px; }
+.btn-add { background: var(--violet-lt); color: var(--violet); border: 1px solid #c5bbf0; }
+.btn-add:hover { background: #e0d9f8; }
+
+.actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+
+/* ── PROGRESS ── */
+.progress-wrap { display: none; flex-direction: column; gap: 6px; margin-top: 8px; }
+.progress-wrap.on { display: flex; }
+.progress-track { height: 4px; background: var(--rule); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--violet), var(--teal)); width: 0%; transition: width 0.3s; }
+.progress-lbl { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* ── LOG ── */
+.log {
+  display: none; flex-direction: column; gap: 2px;
+  background: var(--ink); border-radius: 8px;
+  padding: 14px 16px; max-height: 160px; overflow-y: auto;
+  font-family: var(--mono); font-size: 11px;
+}
+.log.on { display: flex; }
+.ll { color: #666; }
+.ll.ok { color: #4db6ac; }
+.ll.warn { color: #ffb74d; }
+.ll.err { color: #e57373; }
+
+/* ── STATS ROW ── */
+.stats-row {
+  display: none; gap: 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+  overflow: hidden;
+}
+.stats-row.on { display: flex; }
+.stat-cell {
+  flex: 1; padding: 16px 20px;
+  border-right: 1px solid var(--rule);
+}
+.stat-cell:last-child { border-right: none; }
+.stat-val { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--teal); }
+.stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── HIDDEN ── */
+.hidden { display: none !important; }
+
+/* ── NOTE ── */
+.note { font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 8px; }
+
+footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  border-top: 1px solid var(--rule);
+  margin-top: 40px;
+}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-logo">Leonardo SRL</div>
+  <div class="masthead-sep"></div>
+  <div class="masthead-title">Report Presenze Mensile</div>
+  <div class="masthead-badge">CCNL GRAFICI ED EDITORI · 2024–2026</div>
+</div>
+
+<div class="page">
+
+  <!-- ① FILE UPLOAD -->
+  <div class="eyebrow">01 — File di input</div>
+  <div class="upload-grid">
+    <div class="upload-zone" id="zone1">
+      <input type="file" id="file1" accept=".xlsx,.xls" />
+      <div class="upload-icon">📊</div>
+      <div class="upload-label">Timesheet Mensile</div>
+      <div class="upload-sub">Timesheet_Mensile_*.xlsx</div>
+      <div class="upload-filename" id="fname1"></div>
+    </div>
+    <div class="upload-zone" id="zone2">
+      <input type="file" id="file2" accept=".xlsx,.xls" />
+      <div class="upload-icon">🗓</div>
+      <div class="upload-label">Richieste Tempo Libero</div>
+      <div class="upload-sub">Richieste_Tempo_Libero_*.xlsx</div>
+      <div class="upload-filename" id="fname2"></div>
+    </div>
+    <div class="upload-zone" id="zone3" style="border-color:#c5bbf0;grid-column:1/-1">
+      <input type="file" id="file3" accept=".xlsx,.xls" />
+      <div class="upload-icon">📂</div>
+      <div class="upload-label" style="color:var(--violet)">Report Mese Precedente <span style="font-weight:400;color:var(--muted)">(opzionale)</span></div>
+      <div class="upload-sub">Report_Presenze_YYYY_MM.xlsx — per aggiornare i saldi progressivi</div>
+      <div class="upload-filename" id="fname3"></div>
+    </div>
+  </div>
+
+  <!-- ② CHIUSURE -->
+  <div class="card hidden" id="cardClosures">
+    <div class="card-head">
+      <span>🏢</span>
+      <h3>Chiusure aziendali del mese</h3>
+      <span class="tag">opzionale</span>
+    </div>
+    <div class="closure-row">
+      <div class="field"><label>Dal giorno</label><input type="date" id="closeFrom"/></div>
+      <div class="field"><label>Al giorno (incluso)</label><input type="date" id="closeTo"/></div>
+      <button class="btn btn-sm btn-add" onclick="addClosure()">＋ Aggiungi</button>
+    </div>
+    <div class="chip-wrap" id="closureChips">
+      <span class="chip-empty">Nessuna chiusura — i giorni festivi nazionali sono già esclusi automaticamente</span>
+    </div>
+  </div>
+
+  <!-- ③ DIPENDENTI -->
+  <div class="card hidden" id="cardEmps">
+    <div class="card-head">
+      <span>👤</span>
+      <h3>Orario contrattuale per dipendente</h3>
+      <span class="tag">verificare</span>
+    </div>
+    <table class="emp-table" id="empTable">
+      <thead><tr>
+        <th>Dipendente</th><th>Codice</th><th>Gruppo</th>
+        <th>Ore/giorno</th><th>Tipo</th>
+      </tr></thead>
+      <tbody id="empTbody"></tbody>
+    </table>
+    <div class="note">Le ore giornaliere sono usate per cappare i valori TLR anomali di Jibble. Standard: 8h. Edda Aprile: 4h 30min (9:00–13:30).</div>
+  </div>
+
+  <!-- ④ FESTIVITÀ -->
+  <div class="card hidden" id="cardHols">
+    <div class="card-head">
+      <span>🗓</span>
+      <h3>Festività nazionali nel mese</h3>
+      <span class="tag">auto</span>
+    </div>
+    <div class="chip-wrap" id="holChips"></div>
+    <div class="note">Escluse automaticamente dal conteggio assenze ingiustificate.</div>
+  </div>
+
+  <!-- ⑤ CCNL INFO -->
+  <div class="card hidden" id="cardCCNL">
+    <div class="card-head">
+      <span>📋</span>
+      <h3>Parametri CCNL Grafici ed Editori — maturazione mensile</h3>
+      <span class="tag">configurabile</span>
+    </div>
+    <div class="ccnl-grid">
+      <div class="ccnl-item">
+        <div class="val" id="ccnlFerieVal">22</div>
+        <div class="lbl">Ferie annue (giorni)</div>
+        <div class="sub">rateo: 1,833 gg/mese</div>
+      </div>
+      <div class="ccnl-item">
+        <div class="val" id="ccnlRolVal">66,40</div>
+        <div class="lbl">ROL annue (ore)</div>
+        <div class="sub">rateo: 5,53 ore/mese</div>
+      </div>
+      <div class="ccnl-item">
+        <div class="val" id="ccnlExfVal">32</div>
+        <div class="lbl">Ex Festività annue (ore)</div>
+        <div class="sub">rateo: 2,67 ore/mese</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px">
+      La maturazione segue la regola 1/12: matura il rateo intero se il dipendente ha lavorato almeno 15 giorni nel mese; non matura se ha lavorato meno di 15 giorni.
+      Ferie sempre in giorni interi · ROL ed Ex Festività sempre in ore intere (minimo 1h).
+    </div>
+    <div class="g3" style="margin-top:14px">
+      <div class="field"><label>Ferie annue (gg)</label><input type="number" id="cfFerie" value="22" min="20" max="30" step="1"/></div>
+      <div class="field"><label>ROL annue (ore)</label><input type="number" id="cfRol" value="66.4" min="32" max="104" step="0.5"/></div>
+      <div class="field"><label>Ex Festività annue (ore)</label><input type="number" id="cfExf" value="32" min="32" max="40" step="1"/></div>
+    </div>
+    <div class="infobox" style="margin-top:14px">
+      <span class="ico">ℹ️</span>
+      <span>Il <strong>saldo</strong> mostrato nel report è: <strong>Saldo mese precedente</strong> (dal report precedente, se caricato) + <strong>Maturato nel mese</strong> (rateo 1/12) − <strong>Goduto nel mese</strong>.
+      Se non carichi il report precedente, il saldo parte da zero (utile per gennaio o per un reset).</span>
+    </div>
+  </div>
+
+  <!-- ⑥ AZIONI -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btnProcess" disabled onclick="run()">⚡ Genera Report</button>
+    <button class="btn btn-ghost" id="btnExcel" onclick="downloadExcel()" style="display:none">📥 Scarica Excel (dati grezzi)</button>
+    <button class="btn btn-ghost" id="btnReset" onclick="resetAll()" style="display:none">↺ Ricomincia</button>
+  </div>
+
+  <div class="progress-wrap" id="prog">
+    <div class="progress-lbl" id="progLbl">Elaborazione...</div>
+    <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+  </div>
+
+  <div class="log on" id="logBox"></div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-cell"><div class="stat-val" id="sEmp">–</div><div class="stat-lbl">Dipendenti</div></div>
+    <div class="stat-cell"><div class="stat-val" id="sAbs">–</div><div class="stat-lbl">Assenze ingiustif.</div></div>
+    <div class="stat-cell"><div class="stat-val" id="sOT">–</div><div class="stat-lbl">Con straordinari</div></div>
+    <div class="stat-cell"><div class="stat-val" id="sSaldo">–</div><div class="stat-lbl">Saldo ferie neg.</div></div>
+  </div>
+
+</div>
+
+<footer>Report Presenze · Leonardo SRL · CCNL Grafici ed Editori · elaborazione locale</footer>
+
+<script>
+// ════════════════════════════════════════════════════════
+// FESTIVITÀ ITALIANE
+// ════════════════════════════════════════════════════════
+function italianHolidays(year) {
+  const fixed = [`${year}-01-01`,`${year}-01-06`,`${year}-04-25`,
+    `${year}-05-01`,`${year}-06-02`,`${year}-08-15`,
+    `${year}-11-01`,`${year}-12-08`,`${year}-12-25`,`${year}-12-26`];
+  const e = easterDate(year);
+  const em = new Date(e); em.setDate(e.getDate()+1);
+  return new Set([...fixed, iso(em)]);
+}
+function easterDate(Y) {
+  const a=Y%19,b=Math.floor(Y/100),c=Y%100,d=Math.floor(b/4),e2=b%4,
+        f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+        h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+        l=(32+2*e2+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;
+  return new Date(Y,mo-1,dy);
+}
+const HOL_NAMES = {'01-01':'Capodanno','01-06':'Epifania','04-25':'Liberazione',
+  '05-01':'Festa del Lavoro','06-02':'Repubblica','08-15':'Ferragosto',
+  '11-01':'Ognissanti','12-08':'Immacolata','12-25':'Natale','12-26':'S.Stefano'};
+function holName(s){ return HOL_NAMES[s.slice(5)]||'Lunedì Angelo'; }
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function iso(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+function p2(n){ return String(n).padStart(2,'0'); }
+function itDate(s){ const[y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function toDate(v){
+  if(!v) return null;
+  if(v instanceof Date) return new Date(v.getFullYear(),v.getMonth(),v.getDate());
+  if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*86400000)); return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()); }
+  if(typeof v==='string'){ const d=new Date(v); return isNaN(d)?null:d; }
+  return null;
+}
+function isWD(d){ const w=d.getDay(); return w>0&&w<6; }
+function parseMin(s){
+  if(!s && s!==0) return 0;
+  // Numeric value (Excel stores duration as decimal hours sometimes)
+  if(typeof s === 'number') return s < 1 ? Math.round(s * 24 * 60) : Math.round(s * 60);
+  const str = String(s).trim().toLowerCase();
+  if(!str || str==='—') return 0;
+  // "4h 30min" or "4h30min" or "4 h 30 min"
+  const full = str.match(/(\d+)\s*h\s*(\d+)\s*min/);
+  if(full) return +full[1]*60 + +full[2];
+  // "4h" only
+  const hOnly = str.match(/^(\d+)\s*h$/);
+  if(hOnly) return +hOnly[1]*60;
+  // "30min" only
+  const mOnly = str.match(/^(\d+)\s*min$/);
+  if(mOnly) return +mOnly[1];
+  // plain number as decimal hours (e.g. 4.5 = 4h 30min)
+  const num = parseFloat(str);
+  if(!isNaN(num)) return Math.round(num * 60);
+  return 0;
+}
+function minsToStr(m){ return m<=0?'0h 00min':Math.floor(m/60)+'h '+p2(m%60)+'min'; }
+function setProgress(p,l){ document.getElementById('progFill').style.width=p+'%'; document.getElementById('progLbl').textContent=l; }
+function addLog(t,m){ const b=document.getElementById('logBox'); b.classList.add('on'); const l=document.createElement('div'); l.className='ll '+t; l.textContent=m; b.appendChild(l); b.scrollTop=b.scrollHeight; }
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let wb1=null, wb2=null, wb3=null;
+let closures=[];
+let empHours={};
+let detectedEmps=[];
+let detYear=null;
+const PT_DEFAULTS={'edda aprile':4.5};
+
+// ════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ════════════════════════════════════════════════════════
+function setupZone(zoneId, inputId, fnameId, wbSlot, labelCheck){
+  const zone=document.getElementById(zoneId);
+  const input=document.getElementById(inputId);
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])loadWB(e.dataTransfer.files[0],fnameId,wbSlot,zone,labelCheck);});
+  input.addEventListener('change',()=>{if(input.files[0])loadWB(input.files[0],fnameId,wbSlot,zone,labelCheck);});
+}
+
+function loadWB(file, fnameId, slot, zone, check){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      addLog('ok',`✓ File letto: "${file.name}" — fogli: ${wb.SheetNames.join(', ')}`);
+      // check is optional for slot 3
+      if(check && !wb.SheetNames.some(n=>n.includes(check))){
+        throw new Error(`Foglio "${check}" non trovato. Fogli presenti: ${wb.SheetNames.join(', ')}`);
+      }
+      if(slot===1){wb1=wb;}else if(slot===2){wb2=wb;}else{wb3=wb;}
+      document.getElementById(fnameId).textContent=file.name;
+      zone.classList.add('loaded');
+      addLog('ok','✓ Caricato slot '+slot+(slot===3?' (saldi precedenti)':''));
+      onFilesUpdate();
+    }catch(e){addLog('err','✗ Slot '+slot+': '+e.message);console.error(e);}
+  };
+  reader.onerror=()=>addLog('err','✗ Errore lettura file slot '+slot);
+  reader.readAsArrayBuffer(file);
+}
+
+setupZone('zone1','file1','fname1',1,'Raw Timesheets');
+setupZone('zone2','file2','fname2',2,'Richieste Tempo Libero');
+setupZone('zone3','file3','fname3',3,null); // no sheet check for previous report
+
+function onFilesUpdate(){
+  if(!wb1) return;
+  detectEmployees();
+  ['cardClosures','cardEmps','cardHols','cardCCNL'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+  const ready=!!(wb1&&wb2);
+  document.getElementById('btnProcess').disabled=!ready;
+  document.getElementById('btnReset').style.display='inline-flex';
+  if(!ready) addLog('warn','⚑ Carica anche il file "Richieste Tempo Libero" per abilitare la generazione');
+  else addLog('ok','✓ Entrambi i file caricati — pronto per generare');
+}
+
+// ════════════════════════════════════════════════════════
+// DETECT EMPLOYEES from wb1
+// ════════════════════════════════════════════════════════
+function getTimesheetRows(){
+  const sn=wb1.SheetNames.find(n=>n.includes('Raw Timesheets'));
+  const ws=wb1.Sheets[sn];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  let hr=-1;
+  for(let i=0;i<10;i++){if(rows[i]?.includes('Nome e Cognome')){hr=i;break;}}
+  if(hr<0)throw new Error('Intestazione non trovata in Raw Timesheets');
+  const headers=rows[hr];
+  const ci={};headers.forEach((h,i)=>{ci[h]=i;});
+  const data=rows.slice(hr+1).filter(r=>r[ci['Data']]&&r[ci['Nome e Cognome']]);
+  return{ci,data};
+}
+
+function detectEmployees(){
+  const{ci,data}=getTimesheetRows();
+  const seen=new Set(); detectedEmps=[];
+  data.forEach(r=>{
+    const nome=String(r[ci['Nome e Cognome']]||'').trim();
+    const cod=String(r[ci['Codice Membro']]||'');
+    const grp=String(r[ci['Gruppo']]||r[ci['Reparto']]||r[ci['Team']]||'');
+    if(nome&&!seen.has(nome)){
+      seen.add(nome);
+      detectedEmps.push({nome,codice:cod,gruppo:grp});
+      if(!empHours[nome]){
+        const k=Object.keys(PT_DEFAULTS).find(x=>nome.toLowerCase().includes(x));
+        empHours[nome]=k?PT_DEFAULTS[k]:8.0;
+      }
+    }
+    if(!detYear&&r[ci['Data']]){const d=toDate(r[ci['Data']]);if(d)detYear=d.getFullYear();}
+  });
+  renderEmpTable();
+  renderHolidays();
+}
+
+function renderEmpTable(){
+  const tbody=document.getElementById('empTbody');
+  tbody.innerHTML='';
+  detectedEmps.forEach(emp=>{
+    const h=empHours[emp.nome]||8;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-weight:500">${emp.nome}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${emp.codice}</td>
+      <td style="font-size:11px;color:var(--muted)">${emp.gruppo||'—'}</td>
+      <td><input type="number" value="${h}" min="1" max="12" step="0.5" data-emp="${emp.nome}"/></td>
+      <td><span class="badge ${h<8?'badge-pt':'badge-ft'}" id="bt_${emp.codice}">${h<8?'PART-TIME':'FULL-TIME'}</span></td>`;
+    const inp=tr.querySelector('input');
+    inp.addEventListener('input',()=>{
+      const v=parseFloat(inp.value)||8;
+      empHours[emp.nome]=v;
+      const b=document.getElementById('bt_'+emp.codice);
+      if(b){b.className='badge '+(v<8?'badge-pt':'badge-ft');b.textContent=v<8?'PART-TIME':'FULL-TIME';}
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function renderHolidays(){
+  if(!detYear)return;
+  const hols=italianHolidays(detYear);
+  // detect month
+  let mo=null;
+  try{const{ci,data}=getTimesheetRows();for(const r of data){const d=toDate(r[ci['Data']]);if(d){mo=iso(d).slice(0,7);break;}}}catch(e){}
+  const wrap=document.getElementById('holChips'); wrap.innerHTML='';
+  [...hols].sort().forEach(h=>{
+    if(mo&&!h.startsWith(mo))return;
+    const c=document.createElement('span'); c.className='hol-chip';
+    c.textContent=itDate(h)+' — '+holName(h); wrap.appendChild(c);
+  });
+  if(!wrap.children.length) wrap.innerHTML='<span class="chip-empty">Nessuna festività nel mese</span>';
+}
+
+// ════════════════════════════════════════════════════════
+// CLOSURES
+// ════════════════════════════════════════════════════════
+function addClosure(){
+  const f=document.getElementById('closeFrom').value;
+  const t=document.getElementById('closeTo').value||f;
+  if(!f){alert('Inserisci almeno la data di inizio');return;}
+  if(t<f){alert('La data fine deve essere ≥ data inizio');return;}
+  const lbl=f===t?itDate(f):itDate(f)+' → '+itDate(t);
+  closures.push({from:f,to:t,lbl});
+  renderClosures();
+  document.getElementById('closeFrom').value='';
+  document.getElementById('closeTo').value='';
+}
+function removeClosure(i){closures.splice(i,1);renderClosures();}
+function renderClosures(){
+  const w=document.getElementById('closureChips'); w.innerHTML='';
+  if(!closures.length){w.innerHTML='<span class="chip-empty">Nessuna chiusura — i giorni festivi nazionali sono già esclusi automaticamente</span>';return;}
+  closures.forEach((c,i)=>{
+    const ch=document.createElement('span'); ch.className='chip';
+    ch.innerHTML=`${c.lbl} <button onclick="removeClosure(${i})">✕</button>`; w.appendChild(ch);
+  });
+}
+function isClosed(isoD){return closures.some(c=>isoD>=c.from&&isoD<=c.to);}
+
+// ════════════════════════════════════════════════════════
+// MAIN RUN
+// ════════════════════════════════════════════════════════
+function run(){
+  if(!wb1||!wb2)return;
+  document.getElementById('prog').classList.add('on');
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('logBox').classList.add('on');
+  document.getElementById('btnProcess').disabled=true;
+  setTimeout(()=>{try{process();}catch(e){addLog('err','✗ '+e.message);console.error(e);}},60);
+}
+
+// Legge un foglio Tempo Libero cercando la riga con "NOME E COGNOME" come intestazione
+function parseTimeOffSheet(ws){
+  const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  // Trova la riga intestazione
+  let hr = -1;
+  for(let i=0; i<raw.length; i++){
+    if(raw[i].some(c=>String(c).toUpperCase().includes('NOME E COGNOME'))){
+      hr = i; break;
+    }
+  }
+  if(hr < 0) throw new Error('Intestazione "NOME E COGNOME" non trovata nel foglio Tempo Libero');
+  const headers = raw[hr].map(h=>String(h).trim());
+  const result = [];
+  for(let i=hr+1; i<raw.length; i++){
+    const row = raw[i];
+    if(!row.some(c=>c!=='')) continue; // skip empty rows
+    const obj = {};
+    headers.forEach((h,j)=>{ obj[h] = row[j] ?? ''; });
+    if(obj['NOME E COGNOME']) result.push(obj);
+  }
+  return result;
+}
+
+function process(){
+  setProgress(5,'Lettura Timesheet...');
+
+  // ── 1. READ TIMESHEET ──
+  const{ci,data}=getTimesheetRows();
+  let year=detYear;
+  if(!year){for(const r of data){const d=toDate(r[ci['Data']]);if(d){year=d.getFullYear();break;}}}
+  const HOLS=italianHolidays(year);
+  addLog('ok',`✓ Anno: ${year} | Dipendenti: ${detectedEmps.length}`);
+
+  // detect period month
+  let periodMonth=null; // 'YYYY-MM'
+  for(const r of data){const d=toDate(r[ci['Data']]);if(d){periodMonth=iso(d).slice(0,7);break;}}
+  const periodMonthNum=periodMonth?parseInt(periodMonth.slice(5)):1;
+
+  // ── 2. BUILD EMP MAP from timesheet ──
+  setProgress(15,'Elaborazione presenze...');
+  const emps={};
+  detectedEmps.forEach(e=>{
+    emps[e.nome]={
+      nome:e.nome, codice:e.codice, gruppo:e.gruppo,
+      reg_min:0, straord_min:0, presenze:0,
+    };
+  });
+
+  data.forEach(r=>{
+    const nome=String(r[ci['Nome e Cognome']]||'').trim();
+    if(!emps[nome])return;
+    const d=toDate(r[ci['Data']]); if(!d)return;
+    const isoD=iso(d);
+    if(!isWD(d))return;
+    if(HOLS.has(isoD))return;  // ← escludi festività da ore e presenze
+    const regMin=parseMin(r[ci['Ore Regolari']]);
+    const straordMin=parseMin(r[ci['Straordinari Giornalieri']]);
+    const tlrMin=parseMin(r[ci['Tempo Libero Retribuito']]);
+    emps[nome].reg_min+=regMin;
+    emps[nome].straord_min+=straordMin;
+    if(regMin>0||tlrMin>0) emps[nome].presenze++;
+  });
+
+  // ── 3. READ TEMPO LIBERO ──
+  setProgress(30,'Lettura Tempo Libero...');
+
+  // Sheet Giorno (ferie, lutto, malattia, 104)
+  const snG=wb2.SheetNames.find(n=>n.includes('Giorno'));
+  const snH=wb2.SheetNames.find(n=>n.includes('Hour'));
+  if(!snG||!snH) throw new Error('Fogli "Giorno" o "Hour" non trovati nel file Tempo Libero');
+
+  const dfG = parseTimeOffSheet(wb2.Sheets[snG]);
+  const dfH = parseTimeOffSheet(wb2.Sheets[snH]);
+
+  // Initialize leave buckets for all employees
+  detectedEmps.forEach(e=>{
+    if(!emps[e.nome])return;
+    Object.assign(emps[e.nome],{
+      ferie:[],          // [{data}]
+      lutto:[],          // [{data, ore}]
+      malattia:[],       // [{data}]
+      p104:[],           // [{data, ore}] days
+      rol:[],            // [{data, ore}] hours
+      exfest:[],         // [{data, ore}] hours
+    });
+  });
+
+  // Process Giorno sheet (days-based)
+  dfG.forEach(r=>{
+    if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
+    const nome=String(r['NOME E COGNOME']||'').trim();
+    if(!emps[nome])return;
+    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim();
+    const start=toDate(r['START DATE']);
+    const end=toDate(r['END DATE'])||start;
+    if(!start)return;
+
+    // Expand date range
+    const days=[];
+    let cur=new Date(start);
+    while(cur<=end){
+      if(isWD(cur)&&!HOLS.has(iso(cur))&&!isClosed(iso(cur))){
+        days.push(iso(cur));
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+
+    const pl=policy.toLowerCase();
+    days.forEach(d=>{
+      const h=empHours[nome]||8;
+      const entry={data:itDate(d), ore:minsToStr(h*60)};
+      if(pl.includes('104'))         emps[nome].p104.push(entry);
+      else if(pl.includes('lutto'))  emps[nome].lutto.push(entry);
+      else if(pl.includes('malatt')) emps[nome].malattia.push({data:itDate(d)});
+      else if(pl.includes('ferie'))  emps[nome].ferie.push({data:itDate(d)});
+    });
+  });
+
+  // Process Hour sheet (hours-based)
+  dfH.forEach(r=>{
+    if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
+    const nome=String(r['NOME E COGNOME']||'').trim();
+    if(!emps[nome])return;
+    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim();
+    const start=toDate(r['START DATE']); if(!start)return;
+    if(!isWD(start)||HOLS.has(iso(start))||isClosed(iso(start)))return;
+
+    // Duration: round to nearest integer hour (company rule: min 1h, whole hours only)
+    const rawH=parseFloat(r['DURATA'])||0;
+    const hrs=Math.max(1,Math.round(rawH));
+
+    const entry={data:itDate(iso(start)), ore:hrs+'h 00min'};
+    const pl=policy.toLowerCase();
+    if(pl.includes('rol'))       emps[nome].rol.push(entry);
+    else if(pl.includes('fest')) emps[nome].exfest.push(entry);
+  });
+
+  addLog('ok','✓ Tempo libero elaborato — solo voci Approved');
+
+  // ── 4. LEGGI SALDI PRECEDENTI da wb3 (opzionale) ──
+  setProgress(55,'Lettura saldi precedenti...');
+
+  // prevSaldi[nome] = {ferie, rol, exf}  (valori numerici)
+  const prevSaldi={};
+  if(wb3){
+    try{
+      const wsPrev=wb3.Sheets[wb3.SheetNames.find(n=>n==='Saldi'||n.includes('Saldi'))];
+      if(wsPrev){
+        const prevRows=XLSX.utils.sheet_to_json(wsPrev,{defval:''});
+        prevRows.forEach(r=>{
+          const nome=String(r['Dipendente']||'').trim();
+          if(!nome)return;
+          // Column names from previous report: 'Saldo Ferie mese (gg)', 'Saldo ROL mese (ore)', 'Saldo Ex Fest. mese (ore)'
+          const sf=parseFloat(r['Ferie: Saldo Finale'])||0;
+          const sr=parseFloat(r['ROL: Saldo Finale'])||0;
+          const se=parseFloat(r['Ex Fest.: Saldo Finale'])||0;
+          prevSaldi[nome]={ferie:sf,rol:sr,exf:se};
+        });
+        addLog('ok',`✓ Saldi precedenti letti: ${Object.keys(prevSaldi).length} dipendenti`);
+      }
+    }catch(e){addLog('warn','⚑ Impossibile leggere saldi precedenti: '+e.message);}
+  } else {
+    addLog('warn','⚑ Nessun report precedente — saldo parte da zero (modalità primo mese)');
+  }
+
+  // ── 5. CALCOLO RATEO MENSILE ──
+  setProgress(60,'Calcolo saldi CCNL...');
+
+  const annFerie=parseFloat(document.getElementById('cfFerie').value)||22;
+  const annRol=parseFloat(document.getElementById('cfRol').value)||66.4;
+  const annExf=parseFloat(document.getElementById('cfExf').value)||32;
+
+  // ── 6. ASSENZE ──
+  // Costruiamo prima il set di tutti i giorni coperti da permessi approvati
+  // (dal file Tempo Libero) per evitare falsi positivi se Jibble non aggiorna il TLR
+  setProgress(70,'Rilevamento assenze...');
+
+  // Set giorni coperti da TL approvato per dipendente: { nome → Set<isoDate> }
+  const tlApprovedDays={};
+  detectedEmps.forEach(e=>{tlApprovedDays[e.nome]=new Set();});
+
+  // Dal foglio Giorno (giorni interi)
+  dfG.forEach(r=>{
+    if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
+    const nome=String(r['NOME E COGNOME']||'').trim();
+    if(!tlApprovedDays[nome])return;
+    const start=toDate(r['START DATE']);
+    const end=toDate(r['END DATE'])||start;
+    if(!start)return;
+    let cur=new Date(start);
+    while(cur<=end){
+      if(isWD(cur)) tlApprovedDays[nome].add(iso(cur));
+      cur.setDate(cur.getDate()+1);
+    }
+  });
+  // Dal foglio Ora (ore parziali = giorno coperto da permesso)
+  dfH.forEach(r=>{
+    if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
+    const nome=String(r['NOME E COGNOME']||'').trim();
+    if(!tlApprovedDays[nome])return;
+    const start=toDate(r['START DATE']);
+    if(start&&isWD(start)) tlApprovedDays[nome].add(iso(start));
+  });
+
+  // Calcola range del mese dal primo giorno trovato nei dati
+  const firstD = toDate(data[0]?.[ci['Data']]);
+  const absences={};
+  detectedEmps.forEach(e=>{absences[e.nome]=[];});
+
+  if(firstD){
+    const y=firstD.getFullYear(), mo=firstD.getMonth();
+    const daysInMonth=new Date(y,mo+1,0).getDate();
+
+    // Set dei giorni presenti nel timesheet per ogni dipendente
+    const timesheetDays={};
+    detectedEmps.forEach(e=>{timesheetDays[e.nome]=new Set();});
+
+    data.forEach(r=>{
+      const nome=String(r[ci['Nome e Cognome']]||'').trim();
+      if(!timesheetDays[nome])return;
+      const d=toDate(r[ci['Data']]); if(!d)return;
+      const isoD=iso(d);
+      if(!isWD(d)||HOLS.has(isoD)||isClosed(isoD))return;
+      const regMin=parseMin(r[ci['Ore Regolari']]);
+      const tlrMin=parseMin(r[ci['Tempo Libero Retribuito']]);
+      const dailyH=(empHours[nome]&&empHours[nome]>0)?empHours[nome]:8;
+      const tlrCapped=Math.min(tlrMin,dailyH*60);
+      timesheetDays[nome].add(isoD);
+      // Un giorno con TLR approvato nel file TL non è mai assenza ingiustificata,
+      // anche se nel timesheet risulta 0 ore (disallineamento Jibble)
+      const coveredByTL = tlApprovedDays[nome]?.has(isoD);
+      if(regMin===0&&tlrCapped===0&&!coveredByTL) absences[nome].push(itDate(isoD));
+    });
+
+    // Controlla anche giorni lavorativi validi NON presenti nel timesheet
+    for(let day=1;day<=daysInMonth;day++){
+      const d=new Date(y,mo,day);
+      const isoD=iso(d);
+      if(!isWD(d)||HOLS.has(isoD)||isClosed(isoD))continue;
+      detectedEmps.forEach(e=>{
+        if(!timesheetDays[e.nome].has(isoD)&&!tlApprovedDays[e.nome]?.has(isoD)){
+          absences[e.nome].push(itDate(isoD));
+        }
+      });
+    }
+
+    // Ordina le assenze per data
+    detectedEmps.forEach(e=>{
+      absences[e.nome].sort((a,b)=>{
+        const [da,ma,ya]=a.split('/'); const [db,mb,yb]=b.split('/');
+        return new Date(ya,ma-1,da)-new Date(yb,mb-1,db);
+      });
+    });
+  }
+
+  // ── MATURAZIONE CCNL con regola 15 giorni ──
+  // Il rateo matura solo se il dipendente ha lavorato >= 15 giorni nel mese
+  // Calcolo per dipendente in base ai giorni di presenza
+  const ratFerie=(annFerie/12).toFixed(3);
+  const ratRol=(annRol/12).toFixed(2);
+  const ratExf=(annExf/12).toFixed(2);
+  addLog('ok',`✓ Rateo mensile CCNL: Ferie ${ratFerie}gg | ROL ${ratRol}h | Ex Fest ${ratExf}h (regola: matura se ≥15 gg lavorati)`);
+
+  // ── 7. BUILD OUTPUT ──
+  setProgress(80,'Costruzione output Excel...');
+
+  const sumOre=arr=>arr.reduce((a,x)=>a+parseMin(x.ore||'0h 00min'),0);
+  const listDates=arr=>arr.length?arr.map(x=>x.data+(x.ore?' ('+x.ore+')':'')).join('\n'):'—';
+  const listDatesOnly=arr=>arr.length?arr.map(x=>x.data).join('\n'):'—';
+
+  // Variabili rateo base (per legenda e riferimento globale)
+  const baseMatFerie = annFerie/12;
+  const baseMatRol   = annRol/12;
+  const baseMatExf   = annExf/12;
+
+  // Collect per-employee data
+  let totalAbs=0, totalOT=0, totalFerieNeg=0;
+  const empData=[];
+
+  detectedEmps.map(e=>e.nome).sort().forEach(nome=>{
+    const emp=emps[nome]; if(!emp)return;
+    const ferieGodute=emp.ferie.length;
+    const rolGodute=sumOre(emp.rol)/60;
+    const exfGodute=sumOre(emp.exfest)/60;
+    const prev=prevSaldi[nome]||{ferie:0,rol:0,exf:0};
+
+    // Regola CCNL: il rateo matura solo se >= 15 giorni lavorativi nel mese
+    // Usiamo emp.presenze come proxy per i giorni lavorati
+    const matura = emp.presenze >= 15;
+    const matFerie = matura ? annFerie/12 : 0;
+    const matRol   = matura ? annRol/12   : 0;
+    const matExf   = matura ? annExf/12   : 0;
+
+    const saldoFerie=prev.ferie+matFerie-ferieGodute;
+    const saldoRol=prev.rol+matRol-rolGodute;
+    const saldoExf=prev.exf+matExf-exfGodute;
+    const absArr=absences[nome]||[];
+    if(absArr.length>0) totalAbs+=absArr.length;
+    if(emp.straord_min>0) totalOT++;
+    if(saldoFerie<0) totalFerieNeg++;
+    empData.push({emp,ferieGodute,rolGodute,exfGodute,prev,saldoFerie,saldoRol,saldoExf,absArr,matFerie,matRol,matExf,matura});
+  });
+
+  // ── Palette ──
+  // Foglio 1 Presenze   → teal scuro  #1B4F4A + accenti #0e7c6b
+  // Foglio 2 Permessi   → blu navy    #1B2A4A + accenti #2E5FA3
+  // Foglio 3 Saldi      → viola scuro #2D1B4A + accenti #6B3FA0
+  // ID columns (nome/codice/gruppo) → sempre grigio scuro #2C3140
+
+  const C = {
+    // Neutrals
+    white:   'FFFFFF',
+    row_odd: 'FFFFFF',
+    row_evn: 'F4F5F7',
+    id_bg:   'ECEEF2',   // sfondo colonne nome/codice
+    id_text: '1A1D26',
+    border:  'D0D4DC',
+    muted:   '8A8F9E',
+    // Presenze — teal
+    p_head:  '1B4F4A',
+    p_sub:   '2E7D6F',
+    p_light: 'E6F4F1',
+    // Permessi — blu
+    a_head:  '1B2F5C',
+    a_sub:   '2E5FA3',
+    a_light: 'EBF0FA',
+    // Saldi — viola
+    s_head:  '2D1B4A',
+    s_sub:   '6B3FA0',
+    s_light: 'F0EBF8',
+    // Highlights
+    pos_bg:  'D6F0E8', pos_txt: '0A5C3A',  // verde positivo
+    neg_bg:  'FDECEA', neg_txt: 'C0392B',  // rosso negativo
+    amb_bg:  'FEF3E2', amb_txt: 'B45309',  // arancio warning
+    abs_bg:  'FDECEA', abs_txt: 'C0392B',  // assenza
+    ot_bg:   'EBF0FA', ot_txt:  '1B2F5C',  // straordinario
+  };
+
+  function cell(rgb){ return {fgColor:{rgb}}; }
+
+  function baseStyle(bgRgb, txtRgb, opts={}){
+    return {
+      font:{sz:10,name:'Calibri',color:{rgb:txtRgb||'1A1D26'},...(opts.bold?{bold:true}:{}),...(opts.italic?{italic:true}:{})},
+      fill:{fgColor:{rgb:bgRgb||'FFFFFF'}},
+      alignment:{wrapText:true,vertical:'center',...(opts.center?{horizontal:'center'}:{}),...(opts.right?{horizontal:'right'}:{})},
+      border:{
+        bottom:{style:'thin',color:{rgb:opts.borderColor||'D0D4DC'}},
+        right:{style:'hair',color:{rgb:'E0E4EC'}},
+      }
+    };
+  }
+
+  function headStyle(bgRgb, opts={}){
+    return {
+      font:{sz:10,name:'Calibri',bold:true,color:{rgb:'FFFFFF'}},
+      fill:{fgColor:{rgb:bgRgb}},
+      alignment:{wrapText:true,vertical:'center',horizontal:'center'},
+      border:{
+        bottom:{style:'medium',color:{rgb:opts.accent||bgRgb}},
+        right:{style:'thin',color:{rgb:'FFFFFF'}},
+      }
+    };
+  }
+
+  // styleSheet(ws, nRows, colWidths, headColors, idCols, hlCells)
+  // headColors: array of {col, color} OR single color string for all
+  // idCols: array of col indices to style as ID columns
+  // hlCells: [{col, test, style}]
+  function styleSheet(ws, nRows, colWidths, headColors, idCols, hlCells){
+    ws['!cols']=colWidths.map(w=>({wch:w}));
+    ws['!rows']=[{hpt:34}];
+    for(let i=1;i<nRows;i++) ws['!rows'].push({hpt:50});
+
+    const range=XLSX.utils.decode_range(ws['!ref']);
+
+    // Header row
+    for(let C2=range.s.c;C2<=range.e.c;C2++){
+      const ref=XLSX.utils.encode_cell({r:0,c:C2});
+      if(!ws[ref])continue;
+      let hcolor = typeof headColors==='string' ? headColors
+        : (headColors.find(h=>h.col===C2)||{}).color || headColors[0]?.color || '2C3140';
+      ws[ref].s = headStyle(hcolor);
+    }
+
+    // Data rows
+    for(let R=1;R<nRows;R++){
+      const even=R%2===0;
+      const rowBg = even ? C.row_evn : C.row_odd;
+
+      for(let C2=range.s.c;C2<=range.e.c;C2++){
+        const ref=XLSX.utils.encode_cell({r:R,c:C2});
+        if(!ws[ref])continue;
+        const isId=(idCols||[]).includes(C2);
+        ws[ref].s = isId
+          ? baseStyle(even?'E8EAF0':C.id_bg, C.id_text, {bold:C2===0})
+          : baseStyle(rowBg, '1A1D26');
+      }
+
+      // Special highlights
+      (hlCells||[]).forEach(({col,test,style})=>{
+        const ref=XLSX.utils.encode_cell({r:R,c:col});
+        if(ws[ref]&&test(ws[ref].v)) ws[ref].s=style;
+      });
+    }
+  }
+
+  const wbOut=XLSX.utils.book_new();
+
+  // ══════════════════════════════════════════
+  // FOGLIO 1: PRESENZE
+  // ══════════════════════════════════════════
+  const rowsP=[['Dipendente','Codice','Gruppo','Ore Lavorate','Giorni Presenza','Straordinario','Assenze Ingiust. (date)','N° Assenze']];
+  empData.forEach(({emp,absArr})=>{
+    rowsP.push([
+      emp.nome, emp.codice, emp.gruppo||'—',
+      minsToStr(emp.reg_min),
+      emp.presenze,
+      emp.straord_min>0?minsToStr(emp.straord_min):'—',
+      absArr.length?absArr.join('\n'):'—',
+      absArr.length||0,
+    ]);
+  });
+  const ws1=XLSX.utils.aoa_to_sheet(rowsP);
+  // Header: cols 0-2 grigio scuro, cols 3-5 teal, cols 6-7 rosso scuro
+  styleSheet(ws1, rowsP.length, [26,9,20,16,14,16,30,12],
+    [{col:0,color:'2C3140'},{col:1,color:'2C3140'},{col:2,color:'2C3140'},
+     {col:3,color:C.p_head},{col:4,color:C.p_head},{col:5,color:C.p_sub},
+     {col:6,color:'7B2020'},{col:7,color:'7B2020'}],
+    [0,1,2],
+    [
+      {col:5,test:v=>v&&v!=='—',style:{...baseStyle(C.ot_bg,C.ot_txt,{bold:true,center:true})}},
+      {col:7,test:v=>+v>0, style:{...baseStyle(C.abs_bg,C.neg_txt,{bold:true,center:true}),border:{bottom:{style:'thin',color:C.border}}}},
+      {col:7,test:v=>+v===0,style:{...baseStyle(C.row_odd,C.muted,{center:true})}},
+    ]
+  );
+  XLSX.utils.book_append_sheet(wbOut,ws1,'Presenze');
+
+  // ══════════════════════════════════════════
+  // FOGLIO 2: PERMESSI E ASSENZE
+  // Raggruppo visivamente con colori alternati per tipo
+  // ══════════════════════════════════════════
+  const rowsA=[['Dipendente','Codice',
+    'Ferie (date)','N° Ferie',
+    'ROL (data · ore)','Ore ROL',
+    'Ex Festività (data · ore)','Ore Ex Fest.',
+    'Permessi 104 (data · ore)','Ore 104',
+    'Lutto (data · ore)','Ore Lutto',
+    'Malattia (date)','N° Giorni Mal.',
+  ]];
+  empData.forEach(({emp,ferieGodute,rolGodute,exfGodute})=>{
+    rowsA.push([
+      emp.nome, emp.codice,
+      listDatesOnly(emp.ferie),  ferieGodute||'—',
+      listDates(emp.rol),        rolGodute>0?rolGodute+'h':'—',
+      listDates(emp.exfest),     exfGodute>0?exfGodute+'h':'—',
+      listDates(emp.p104),       sumOre(emp.p104)>0?minsToStr(sumOre(emp.p104)):'—',
+      listDates(emp.lutto),      sumOre(emp.lutto)>0?minsToStr(sumOre(emp.lutto)):'—',
+      listDatesOnly(emp.malattia), emp.malattia.length||'—',
+    ]);
+  });
+  const ws2=XLSX.utils.aoa_to_sheet(rowsA);
+  // Colori intestazione per gruppo: ferie=verde acqua, ROL=blu, ExFest=blu medio,
+  //                                  104=indaco, lutto=grigio viola, malattia=bordeaux
+  styleSheet(ws2, rowsA.length, [26,9,24,9,28,11,28,12,28,10,26,10,24,10],
+    [
+      {col:0,color:'2C3140'},{col:1,color:'2C3140'},
+      {col:2,color:'1A5C3A'},{col:3,color:'1A5C3A'},   // ferie verde
+      {col:4,color:C.a_head},{col:5,color:C.a_head},   // ROL blu navy
+      {col:6,color:'1A4070'},{col:7,color:'1A4070'},   // ex fest blu medio
+      {col:8,color:'3B2A7A'},{col:9,color:'3B2A7A'},   // 104 viola
+      {col:10,color:'4A2040'},{col:11,color:'4A2040'}, // lutto bordeaux
+      {col:12,color:'7B2020'},{col:13,color:'7B2020'}, // malattia rosso scuro
+    ],
+    [0,1], []
+  );
+  XLSX.utils.book_append_sheet(wbOut,ws2,'Permessi e Assenze');
+
+  // ══════════════════════════════════════════
+  // FOGLIO 3: SALDI
+  // ══════════════════════════════════════════
+  const rowsS=[['Dipendente','Codice',
+    'Ferie — Saldo Prec.','Ferie — Maturate','Ferie — Godute','FERIE — SALDO',
+    'ROL — Saldo Prec.','ROL — Maturato','ROL — Goduto','ROL — SALDO',
+    'Ex Fest. — Saldo Prec.','Ex Fest. — Maturato','Ex Fest. — Goduto','EX FEST. — SALDO',
+  ]];
+  empData.forEach(({emp,ferieGodute,rolGodute,exfGodute,prev,saldoFerie,saldoRol,saldoExf,matFerie,matRol,matExf,matura})=>{
+    rowsS.push([
+      emp.nome, emp.codice,
+      prev.ferie?+prev.ferie.toFixed(2):0, +matFerie.toFixed(3), ferieGodute||0, +saldoFerie.toFixed(2),
+      prev.rol  ?+prev.rol.toFixed(2):0,   +matRol.toFixed(2),   rolGodute||0,   +saldoRol.toFixed(2),
+      prev.exf  ?+prev.exf.toFixed(2):0,   +matExf.toFixed(2),   exfGodute||0,   +saldoExf.toFixed(2),
+    ]);
+  });
+
+  const saldoPos ={...baseStyle(C.pos_bg,C.pos_txt,{bold:true,center:true}), border:{bottom:{style:'thin',color:C.border},right:{style:'medium',color:'FFFFFF'}}};
+  const saldoNegF={...baseStyle(C.neg_bg,C.neg_txt,{bold:true,center:true}), border:{bottom:{style:'thin',color:C.border},right:{style:'medium',color:'FFFFFF'}}};
+  const saldoNegA={...baseStyle(C.amb_bg,C.amb_txt,{bold:true,center:true}), border:{bottom:{style:'thin',color:C.border},right:{style:'medium',color:'FFFFFF'}}};
+
+  const ws3=XLSX.utils.aoa_to_sheet(rowsS);
+  styleSheet(ws3, rowsS.length, [26,9,16,16,13,17,15,15,13,17,16,16,13,17],
+    [
+      {col:0,color:'2C3140'},{col:1,color:'2C3140'},
+      {col:2,color:'1A5C3A'},{col:3,color:'1A5C3A'},{col:4,color:'1A5C3A'},{col:5,color:'0A3D26'}, // ferie
+      {col:6,color:C.a_sub}, {col:7,color:C.a_sub}, {col:8,color:C.a_sub}, {col:9,color:C.a_head}, // ROL
+      {col:10,color:'5B3FA0'},{col:11,color:'5B3FA0'},{col:12,color:'5B3FA0'},{col:13,color:C.s_head}, // ExFest
+    ],
+    [0,1],
+    [
+      // Ferie saldo finale col 5
+      {col:5,test:v=>+v>=0, style:saldoPos},
+      {col:5,test:v=>+v<0,  style:saldoNegF},
+      // ROL saldo finale col 9
+      {col:9,test:v=>+v>=0, style:saldoPos},
+      {col:9,test:v=>+v<0,  style:saldoNegA},
+      // ExFest saldo finale col 13
+      {col:13,test:v=>+v>=0,style:saldoPos},
+      {col:13,test:v=>+v<0, style:saldoNegA},
+    ]
+  );
+  XLSX.utils.book_append_sheet(wbOut,ws3,'Saldi');
+
+  // ─ Legend sheet ─
+  const legData=[
+    ['REPORT PRESENZE — LEGENDA E PARAMETRI',''],['',''],
+    ['PERIODO ELABORATO', periodMonth||'—'],
+    ['Anno', year],
+    ['Chiusure aziendali', closures.length?closures.map(c=>c.lbl).join('; '):'Nessuna'],
+    ['Report mese precedente', wb3?'Caricato (saldi progressivi attivi)':'Non caricato (saldo parte da zero)'],
+    ['',''],
+    ['CCNL GRAFICI ED EDITORI (Assografici, 2024–2026)',''],
+    ['Ferie annue', annFerie+' giorni lavorativi'],
+    ['ROL annue', annRol+' ore'],
+    ['Ex Festività annue', annExf+' ore'],
+    ['Rateo mensile ferie', ratFerie+' gg/mese'],
+    ['Rateo mensile ROL', ratRol+' ore/mese'],
+    ['Rateo mensile Ex Fest.', ratExf+' ore/mese'],
+    ['',''],
+    ['LOGICA SALDO',''],
+    ['Formula','Saldo mese prec. + Maturato mese − Goduto mese'],
+    ['Primo mese / senza report prec.','Saldo parte da 0'],
+    ['Saldo negativo ferie','Evidenziato in rosso'],
+    ['Saldo negativo ROL / Ex Fest.','Evidenziato in arancio'],
+    ['',''],
+    ['REGOLE AZIENDALI',''],
+    ['Ferie', 'Solo giorni interi'],
+    ['ROL / Ex Festività', 'Ore intere, minimo 1h'],
+    ['Orario standard', '8h/giorno (8:30–18:00 con 1h pausa)'],
+    ['Settimana lavorativa', 'Lunedì–Venerdì'],
+    ['',''],
+    ['ORE CONTRATTUALI PER DIPENDENTE',''],
+    ...detectedEmps.map(e=>[e.nome,(empHours[e.nome]||8)+'h/giorno']),
+    ['',''],
+    ['FESTIVITÀ NAZIONALI ANNO '+year,''],
+    ...[...italianHolidays(year)].sort().map(h=>[itDate(h), holName(h)]),
+    ['',''],
+    ['NOTE TECNICHE',''],
+    ['Fonte ore','Colonna "Ore Regolari" del foglio Raw Timesheets (dati puliti Jibble)'],
+    ['TLR cappato','I valori TLR vengono cappati all\'orario contrattuale (evita anomalie Jibble)'],
+    ['Voci Annullate','Escluse: solo le voci con STATUS=Approved entrano nel conteggio'],
+    ['Assenze ingiustificate','Giorni Lun–Ven con 0 ore regolari e 0 TLR nel Timesheet, escluse: festività nazionali, chiusure aziendali, giorni coperti da richieste approvate nel file Tempo Libero, giorni mancanti dal Timesheet ma presenti nel file Tempo Libero'],
+  ];
+  const wsL=XLSX.utils.aoa_to_sheet(legData);
+  wsL['!cols']=[{wch:32},{wch:55}];
+  XLSX.utils.book_append_sheet(wbOut,wsL,'Legenda');
+
+  setProgress(96,'Generazione report...');
+
+  // ══════════════════════════════════════════
+  // GENERA REPORT HTML (output principale)
+  // ══════════════════════════════════════════
+  const monthLabel = periodMonth
+    ? new Date(periodMonth+'-01').toLocaleDateString('it-IT',{month:'long',year:'numeric'})
+    : year;
+
+  function badge(v, tipo){
+    // tipo: 'pos','neg','warn','abs','ot','neutral'
+    const styles={
+      pos:  'background:#D6F0E8;color:#0A5C3A;font-weight:700',
+      neg:  'background:#FDECEA;color:#C0392B;font-weight:700',
+      warn: 'background:#FEF3E2;color:#B45309;font-weight:700',
+      abs:  'background:#FDECEA;color:#C0392B;font-weight:700',
+      ot:   'background:#EBF0FA;color:#1B2F5C;font-weight:600',
+      neutral:'color:#888;font-style:italic',
+    };
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;${styles[tipo]||''}">${v}</span>`;
+  }
+
+  function saldoBadge(v){
+    const n=parseFloat(v);
+    if(isNaN(n)||v==='—') return badge('—','neutral');
+    return n>=0 ? badge('+'+n.toFixed(2),'pos') : badge(n.toFixed(2),'neg');
+  }
+  function saldoBadgeAmb(v){
+    const n=parseFloat(v);
+    if(isNaN(n)||v==='—') return badge('—','neutral');
+    return n>=0 ? badge('+'+n.toFixed(2),'pos') : badge(n.toFixed(2),'warn');
+  }
+
+  const hStyle=`
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1d26;margin:0;padding:0;background:#f4f5f7}
+    @media print{
+      body{background:white;font-size:10px}
+      .no-print{display:none!important}
+      .section{page-break-inside:avoid}
+      h2{page-break-before:always}
+      h2:first-of-type{page-break-before:avoid}
+      @page{margin:1.5cm;size:A4 landscape}
+    }
+    .cover{background:linear-gradient(135deg,#1B4F4A,#1B2F5C);color:white;padding:32px 40px;margin-bottom:0}
+    .cover h1{font-size:22px;margin:0 0 6px;font-weight:700;letter-spacing:-0.5px}
+    .cover .sub{opacity:0.75;font-size:13px}
+    .cover .meta{margin-top:16px;display:flex;gap:24px;font-size:12px}
+    .cover .meta span{background:rgba(255,255,255,0.12);padding:4px 12px;border-radius:20px}
+    .page{max-width:1200px;margin:0 auto;padding:24px}
+    h2{font-size:14px;font-weight:700;margin:28px 0 10px;padding:8px 14px;border-radius:6px;display:flex;align-items:center;gap:8px}
+    h2.teal{background:#1B4F4A;color:white}
+    h2.blue{background:#1B2F5C;color:white}
+    h2.violet{background:#2D1B4A;color:white}
+    table{width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:8px}
+    th{padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:left;white-space:nowrap}
+    td{padding:9px 12px;border-bottom:1px solid #ECEEF2;vertical-align:top;font-size:11px;line-height:1.5}
+    tr:last-child td{border-bottom:none}
+    tr:nth-child(even) td{background:#F8F9FB}
+    tr:hover td{background:#F0F3F8}
+    td.name{font-weight:600;font-size:12px;white-space:nowrap}
+    td.code{color:#888;font-size:10px;font-family:monospace}
+    td.num{text-align:center;font-family:monospace;font-size:11px}
+    td.dates{font-size:10px;color:#555;line-height:1.6}
+    .th-id{background:#2C3140;color:white}
+    .th-teal{background:#1B4F4A;color:white}
+    .th-teal2{background:#2E7D6F;color:white}
+    .th-blue{background:#1B2F5C;color:white}
+    .th-blue2{background:#2E5FA3;color:white}
+    .th-blue3{background:#1A4070;color:white}
+    .th-violet{background:#3B2A7A;color:white}
+    .th-bord{background:#4A2040;color:white}
+    .th-red{background:#7B2020;color:white}
+    .th-green{background:#1A5C3A;color:white}
+    .th-saldo{background:#0A3D26;color:white;font-size:11px!important}
+    .th-saldo-b{background:#0D2A5C;color:white;font-size:11px!important}
+    .th-saldo-v{background:#1F0D3A;color:white;font-size:11px!important}
+    .print-btn{display:inline-flex;align-items:center;gap:8px;background:#1B4F4A;color:white;border:none;padding:10px 22px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;margin:16px 0 4px}
+    .print-btn:hover{background:#0e3d38}
+    .legend{background:white;border-radius:8px;padding:16px 20px;margin-top:8px;font-size:11px;line-height:1.8;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+    .legend h3{font-size:12px;margin:0 0 8px;color:#2C3140}
+    .legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 32px}
+    .legend dt{color:#888;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+    .legend dd{margin:0 0 4px;font-weight:500}
+  `;
+
+  // ── SEZIONE 1: PRESENZE ──
+  let t1=`<table><thead><tr>
+    <th class="th-id">Dipendente</th>
+    <th class="th-id">Cod.</th>
+    <th class="th-id">Gruppo</th>
+    <th class="th-teal">Ore Lavorate</th>
+    <th class="th-teal">Giorni Presenza</th>
+    <th class="th-teal2">Straordinario</th>
+    <th class="th-red">Assenze Ingiustificate</th>
+    <th class="th-red">N°</th>
+  </tr></thead><tbody>`;
+  empData.forEach(({emp,absArr})=>{
+    t1+=`<tr>
+      <td class="name">${emp.nome}</td>
+      <td class="code">${emp.codice}</td>
+      <td class="code">${emp.gruppo||'—'}</td>
+      <td class="num">${minsToStr(emp.reg_min)}</td>
+      <td class="num">${emp.presenze}</td>
+      <td class="num">${emp.straord_min>0?badge(minsToStr(emp.straord_min),'ot'):'<span style="color:#ccc">—</span>'}</td>
+      <td class="dates">${absArr.length?absArr.join('<br>'):'<span style="color:#ccc">—</span>'}</td>
+      <td class="num">${absArr.length>0?badge(absArr.length,'abs'):badge('0','pos')}</td>
+    </tr>`;
+  });
+  t1+=`</tbody></table>`;
+
+  // ── SEZIONE 2: PERMESSI ──
+  let t2=`<table><thead><tr>
+    <th class="th-id">Dipendente</th>
+    <th class="th-green">Ferie</th><th class="th-green">N°</th>
+    <th class="th-blue">ROL</th><th class="th-blue">Ore</th>
+    <th class="th-blue3">Ex Festività</th><th class="th-blue3">Ore</th>
+    <th class="th-violet">Permessi 104</th><th class="th-violet">Ore</th>
+    <th class="th-bord">Lutto</th><th class="th-bord">Ore</th>
+    <th class="th-red">Malattia</th><th class="th-red">N°</th>
+  </tr></thead><tbody>`;
+  empData.forEach(({emp,ferieGodute,rolGodute,exfGodute})=>{
+    const nd='<span style="color:#ccc">—</span>';
+    t2+=`<tr>
+      <td class="name">${emp.nome}</td>
+      <td class="dates">${emp.ferie.length?listDatesOnly(emp.ferie).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${ferieGodute||nd}</td>
+      <td class="dates">${emp.rol.length?listDates(emp.rol).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${rolGodute>0?rolGodute+'h':nd}</td>
+      <td class="dates">${emp.exfest.length?listDates(emp.exfest).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${exfGodute>0?exfGodute+'h':nd}</td>
+      <td class="dates">${emp.p104.length?listDates(emp.p104).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${sumOre(emp.p104)>0?minsToStr(sumOre(emp.p104)):nd}</td>
+      <td class="dates">${emp.lutto.length?listDates(emp.lutto).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${sumOre(emp.lutto)>0?minsToStr(sumOre(emp.lutto)):nd}</td>
+      <td class="dates">${emp.malattia.length?listDatesOnly(emp.malattia).replace(/\n/g,'<br>'):nd}</td>
+      <td class="num">${emp.malattia.length||nd}</td>
+    </tr>`;
+  });
+  t2+=`</tbody></table>`;
+
+  // ── SEZIONE 3: SALDI ──
+  let t3=`<table><thead><tr>
+    <th class="th-id">Dipendente</th>
+    <th class="th-green">Ferie Prec.</th><th class="th-green">Maturate</th><th class="th-green">Godute</th><th class="th-saldo">SALDO FERIE</th>
+    <th class="th-blue2">ROL Prec.</th><th class="th-blue2">Maturato</th><th class="th-blue2">Goduto</th><th class="th-saldo-b">SALDO ROL</th>
+    <th class="th-violet">Ex Fest. Prec.</th><th class="th-violet">Maturato</th><th class="th-violet">Goduto</th><th class="th-saldo-v">SALDO EX FEST.</th>
+  </tr></thead><tbody>`;
+  empData.forEach(({emp,ferieGodute,rolGodute,exfGodute,prev,saldoFerie,saldoRol,saldoExf,matFerie,matRol,matExf,matura})=>{
+    const nd='<span style="color:#ccc">0</span>';
+    const matNote = matura ? '' : '<span style="font-size:9px;color:#B45309;display:block">⚠ <15gg</span>';
+    t3+=`<tr>
+      <td class="name">${emp.nome}</td>
+      <td class="num">${prev.ferie?prev.ferie.toFixed(2):nd}</td>
+      <td class="num">${matFerie.toFixed(3)}${matNote}</td>
+      <td class="num">${ferieGodute||nd}</td>
+      <td class="num">${saldoBadge(saldoFerie)}</td>
+      <td class="num">${prev.rol?prev.rol.toFixed(2):nd}</td>
+      <td class="num">${matRol.toFixed(2)}${matNote}</td>
+      <td class="num">${rolGodute||nd}</td>
+      <td class="num">${saldoBadgeAmb(saldoRol)}</td>
+      <td class="num">${prev.exf?prev.exf.toFixed(2):nd}</td>
+      <td class="num">${matExf.toFixed(2)}${matNote}</td>
+      <td class="num">${exfGodute||nd}</td>
+      <td class="num">${saldoBadgeAmb(saldoExf)}</td>
+    </tr>`;
+  });
+  t3+=`</tbody></table>`;
+
+  const htmlReport=`<!DOCTYPE html><html lang="it"><head>
+    <meta charset="UTF-8">
+    <title>Report Presenze ${monthLabel} — Leonardo SRL</title>
+    <style>${hStyle}</style>
+  </head><body>
+    <div class="cover">
+      <h1>Report Presenze Mensile</h1>
+      <div class="sub">Leonardo SRL · CCNL Grafici ed Editori</div>
+      <div class="meta">
+        <span>📅 ${monthLabel}</span>
+        <span>👥 ${detectedEmps.length} dipendenti</span>
+        <span>⚠️ ${totalAbs} assenze ingiustificate</span>
+        ${wb3?'<span>🔄 Saldi progressivi attivi</span>':'<span>📌 Primo mese (saldo da zero)</span>'}
+      </div>
+    </div>
+    <div class="page">
+      <button class="print-btn no-print" onclick="window.print()">🖨 Stampa / Salva PDF</button>
+
+      <h2 class="teal">① Presenze</h2>
+      ${t1}
+
+      <h2 class="blue">② Permessi e Assenze</h2>
+      ${t2}
+
+      <h2 class="violet">③ Saldi Ferie · ROL · Ex Festività</h2>
+      ${t3}
+
+      <div class="legend">
+        <h3>Parametri utilizzati</h3>
+        <div class="legend-grid">
+          <div><dt>CCNL</dt><dd>Grafici ed Editori (Assografici 2024–2026)</dd></div>
+          <div><dt>Ferie annue</dt><dd>${annFerie} giorni → rateo ${baseMatFerie.toFixed(3)} gg/mese</dd></div>
+          <div><dt>ROL annue</dt><dd>${annRol} ore → rateo ${baseMatRol.toFixed(2)} h/mese</dd></div>
+          <div><dt>Ex Festività annue</dt><dd>${annExf} ore → rateo ${baseMatExf.toFixed(2)} h/mese</dd></div>
+          <div><dt>Saldi precedenti</dt><dd>${wb3?'Caricati da report mese precedente':'Non caricati — saldo parte da zero'}</dd></div>
+          <div><dt>Chiusure aziendali</dt><dd>${closures.length?closures.map(c=>c.lbl).join(', '):'Nessuna'}</dd></div>
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+
+  // Scarica report HTML come file
+  const blob=new Blob([htmlReport],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Report_Presenze_'+(periodMonth||year)+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+
+  // Salva dati Excel per download opzionale
+  window._lastWbOut = wbOut;
+  window._lastFname = 'Report_Presenze_'+(periodMonth||year)+'.xlsx';
+  document.getElementById('btnExcel').style.display='inline-flex';
+
+  setProgress(100,'✓ Report generato!');
+  addLog('ok',`✓ Dipendenti: ${detectedEmps.length} | Assenze: ${totalAbs} | Saldi ferie negativi: ${totalFerieNeg}`);
+  if(closures.length) addLog('ok','✓ Chiusure escluse: '+closures.map(c=>c.lbl).join(', '));
+
+  document.getElementById('sEmp').textContent=detectedEmps.length;
+  document.getElementById('sAbs').textContent=totalAbs;
+  document.getElementById('sOT').textContent=totalOT;
+  document.getElementById('sSaldo').textContent=totalFerieNeg;
+  document.getElementById('statsRow').classList.add('on');
+  document.getElementById('btnProcess').disabled=false;
+  document.getElementById('btnProcess').textContent='✓ Report scaricato!';
+}
+
+function downloadExcel(){
+  if(window._lastWbOut){
+    XLSX.writeFile(window._lastWbOut, window._lastFname, {bookType:'xlsx',type:'binary'});
+  }
+}
+
+function resetAll(){
+  wb1=null;wb2=null;wb3=null;closures=[];empHours={};detectedEmps=[];detYear=null;
+  window._lastWbOut=null; window._lastFname=null;
+  document.getElementById('file1').value='';
+  document.getElementById('file2').value='';
+  document.getElementById('file3').value='';
+  document.getElementById('fname1').textContent='';
+  document.getElementById('fname2').textContent='';
+  document.getElementById('fname3').textContent='';
+  document.getElementById('zone1').classList.remove('loaded');
+  document.getElementById('zone2').classList.remove('loaded');
+  document.getElementById('zone3').classList.remove('loaded');
+  ['cardClosures','cardEmps','cardHols','cardCCNL'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('btnProcess').disabled=true;
+  document.getElementById('btnProcess').textContent='⚡ Genera Report';
+  document.getElementById('btnExcel').style.display='none';
+  document.getElementById('btnReset').style.display='none';
+  document.getElementById('prog').classList.remove('on');
+  document.getElementById('logBox').innerHTML='<div class="ll">— Log caricamento file —</div>';
+  document.getElementById('statsRow').classList.remove('on');
+  document.getElementById('progFill').style.width='0%';
+  renderClosures();
+}
+</script>
+</body>
+</html>
