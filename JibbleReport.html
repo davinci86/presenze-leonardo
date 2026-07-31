@@ -811,12 +811,10 @@ function process(){
     if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
     const nome=String(r['NOME E COGNOME']||'').trim();
     if(!emps[nome])return;
-    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim();
+    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim().replace(/\t/g,' ').replace(/\s+/g,' ');
     const start=toDate(r['START DATE']);
     const end=toDate(r['END DATE'])||start;
     if(!start)return;
-
-    // Expand date range
     const days=[];
     let cur=new Date(start);
     while(cur<=end){
@@ -842,9 +840,8 @@ function process(){
     if(String(r['STATUS']||'').trim().toLowerCase()!=='approved')return;
     const nome=String(r['NOME E COGNOME']||'').trim();
     if(!emps[nome])return;
-    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim();
+    const policy=String(r['POLICY SUL TEMPO LIBERO']||'').trim().replace(/\t/g,' ').replace(/\s+/g,' ');
     const start=toDate(r['START DATE']); if(!start)return;
-    if(!isWD(start)||HOLS.has(iso(start))||isClosed(iso(start)))return;
 
     // Duration: round to nearest integer hour (company rule: min 1h, whole hours only)
     const rawH=parseFloat(r['DURATA'])||0;
