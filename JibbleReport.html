@@ -1213,55 +1213,6 @@ function process(){
     }
   }
 
-  // ── SEZIONE 4: ANOMALIE TIMBRATURA ──
-  let t4=`<table><thead><tr>
-    <th class="th-id">Dipendente</th>
-    <th class="th-red">Tipo</th>
-    <th class="th-red">Data</th>
-    <th class="th-blue">Giorno Prec. — Ore Regolari</th>
-    <th class="th-blue">Giorno Prec. — Ore Tracciate</th>
-    <th class="th-teal">Note</th>
-  </tr></thead><tbody>`;
-
-  let hasAnom=false;
-  detectedEmps.map(e=>e.nome).sort().forEach(nome=>{
-    const lista=anomalie[nome]||[];
-    if(!lista.length)return;
-    lista.forEach((a,i)=>{
-      hasAnom=true;
-      const nd='<span style="color:#ccc">—</span>';
-      let tipoBadge='', nota='';
-      if(a.tipo==='assenza_anomala'){
-        tipoBadge=`<span style="background:#FEF3E2;color:#B45309;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">⚠ Possibile errore timbratura</span>`;
-        nota='Il giorno precedente ha ore tracciate anomale. Verificare in Jibble se la timbratura di uscita è corretta prima di contestare l\'assenza.';
-      } else if(a.tipo==='assenza_pura'){
-        tipoBadge=`<span style="background:#FDECEA;color:#C0392B;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">🔴 Assenza ingiustificata</span>`;
-        nota='Il giorno precedente ha timbrature regolari. Assenza da verificare con il dipendente.';
-      } else {
-        tipoBadge=`<span style="background:#EBF0FA;color:#1B2F5C;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">📋 Timbratura anomala</span>`;
-        nota='Ore tracciate superiori alla soglia (orario standard + 2h). Possibile dimenticanza di timbratura uscita. Nessuna assenza rilevata il giorno dopo.';
-      }
-      t4+=`<tr>
-        <td class="name">${i===0?nome:''}</td>
-        <td style="vertical-align:top;padding-top:10px">${tipoBadge}</td>
-        <td class="num">${itDate(a.data)}</td>
-        <td class="num">${a.prevData?itDate(a.prevData)+' — '+a.prevOreReg:nd}</td>
-        <td class="num">${a.prevData?a.prevOreTrc:nd}</td>
-        <td class="dates" style="font-size:10px;color:#555;max-width:220px;white-space:normal">${nota}</td>
-      </tr>`;
-    });
-  });
-
-  if(!hasAnom){
-    t4+=`<tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px">Nessuna anomalia rilevata</td></tr>`;
-  }
-  t4+=`</tbody></table>
-  <div style="margin-top:8px;font-size:10px;color:#888;font-style:italic">
-    Soglia anomalia: orario contrattuale + 2h (es. 10h per full-time, 6h 30min per Edda Aprile).
-    Le assenze precedute da timbratura anomala potrebbero essere causate da dimenticanza di timbratura uscita il giorno precedente —
-    verificare in Jibble prima di procedere con qualsiasi contestazione.
-  </div>`;
-
   // ══════════════════════════════════════════
   // FOGLIO 1: PRESENZE
   // ══════════════════════════════════════════
@@ -1586,6 +1537,55 @@ function process(){
     </tr>`;
   });
   t3+=`</tbody></table>`;
+
+  // ── SEZIONE 4: ANOMALIE TIMBRATURA ──
+  let t4=`<table><thead><tr>
+    <th class="th-id">Dipendente</th>
+    <th class="th-red">Tipo</th>
+    <th class="th-red">Data</th>
+    <th class="th-blue">Giorno Prec. — Ore Regolari</th>
+    <th class="th-blue">Giorno Prec. — Ore Tracciate</th>
+    <th class="th-teal">Note</th>
+  </tr></thead><tbody>`;
+
+  let hasAnom=false;
+  detectedEmps.map(e=>e.nome).sort().forEach(nome=>{
+    const lista=anomalie[nome]||[];
+    if(!lista.length)return;
+    lista.forEach((a,i)=>{
+      hasAnom=true;
+      const nd='<span style="color:#ccc">—</span>';
+      let tipoBadge='', nota='';
+      if(a.tipo==='assenza_anomala'){
+        tipoBadge=`<span style="background:#FEF3E2;color:#B45309;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">⚠ Possibile errore timbratura</span>`;
+        nota='Il giorno precedente ha ore tracciate anomale. Verificare in Jibble se la timbratura di uscita è corretta prima di contestare l\'assenza.';
+      } else if(a.tipo==='assenza_pura'){
+        tipoBadge=`<span style="background:#FDECEA;color:#C0392B;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">🔴 Assenza ingiustificata</span>`;
+        nota='Il giorno precedente ha timbrature regolari. Assenza da verificare con il dipendente.';
+      } else {
+        tipoBadge=`<span style="background:#EBF0FA;color:#1B2F5C;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">📋 Timbratura anomala</span>`;
+        nota='Ore tracciate superiori alla soglia (orario standard + 2h). Possibile dimenticanza di timbratura uscita. Nessuna assenza rilevata il giorno dopo.';
+      }
+      t4+=`<tr>
+        <td class="name">${i===0?nome:''}</td>
+        <td style="vertical-align:top;padding-top:10px">${tipoBadge}</td>
+        <td class="num">${itDate(a.data)}</td>
+        <td class="num">${a.prevData?itDate(a.prevData)+' — '+a.prevOreReg:nd}</td>
+        <td class="num">${a.prevData?a.prevOreTrc:nd}</td>
+        <td class="dates" style="font-size:10px;color:#555;max-width:220px;white-space:normal">${nota}</td>
+      </tr>`;
+    });
+  });
+
+  if(!hasAnom){
+    t4+=`<tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px">Nessuna anomalia rilevata nel mese</td></tr>`;
+  }
+  t4+=`</tbody></table>
+  <div style="margin-top:8px;font-size:10px;color:#888;font-style:italic">
+    Soglia anomalia: orario contrattuale + 2h (es. 10h per full-time, 6h 30min per Edda Aprile).
+    Le assenze precedute da timbratura anomala potrebbero essere causate da dimenticanza di timbratura uscita il giorno precedente —
+    verificare in Jibble prima di procedere con qualsiasi contestazione.
+  </div>`;
 
   const htmlReport=`<!DOCTYPE html><html lang="it"><head>
     <meta charset="UTF-8">
