@@ -431,9 +431,9 @@ footer {
     </div>
     <div class="ccnl-grid">
       <div class="ccnl-item">
-        <div class="val" id="ccnlFerieVal">22</div>
+        <div class="val" id="ccnlFerieVal">20</div>
         <div class="lbl">Ferie annue (giorni)</div>
-        <div class="sub">rateo: 1,833 gg/mese</div>
+        <div class="sub">rateo: 1,667 gg/mese</div>
       </div>
       <div class="ccnl-item">
         <div class="val" id="ccnlRolVal">66,40</div>
@@ -451,7 +451,7 @@ footer {
       Ferie sempre in giorni interi · ROL ed Ex Festività sempre in ore intere (minimo 1h).
     </div>
     <div class="g3" style="margin-top:14px">
-      <div class="field"><label>Ferie annue (gg)</label><input type="number" id="cfFerie" value="22" min="20" max="30" step="1"/></div>
+      <div class="field"><label>Ferie annue (gg)</label><input type="number" id="cfFerie" value="20" min="20" max="30" step="1"/></div>
       <div class="field"><label>ROL annue (ore)</label><input type="number" id="cfRol" value="66.4" min="32" max="104" step="0.5"/></div>
       <div class="field"><label>Ex Festività annue (ore)</label><input type="number" id="cfExf" value="32" min="32" max="40" step="1"/></div>
     </div>
@@ -884,7 +884,7 @@ function process(){
   // ── 5. CALCOLO RATEO MENSILE ──
   setProgress(60,'Calcolo saldi CCNL...');
 
-  const annFerie=parseFloat(document.getElementById('cfFerie').value)||22;
+  const annFerie=parseFloat(document.getElementById('cfFerie').value)||20;
   const annRol=parseFloat(document.getElementById('cfRol').value)||66.4;
   const annExf=parseFloat(document.getElementById('cfExf').value)||32;
 
@@ -972,12 +972,103 @@ function process(){
   }
 
   // ── MATURAZIONE CCNL con regola 15 giorni ──
-  // Il rateo matura solo se il dipendente ha lavorato >= 15 giorni nel mese
-  // Calcolo per dipendente in base ai giorni di presenza
   const ratFerie=(annFerie/12).toFixed(3);
   const ratRol=(annRol/12).toFixed(2);
   const ratExf=(annExf/12).toFixed(2);
   addLog('ok',`✓ Rateo mensile CCNL: Ferie ${ratFerie}gg | ROL ${ratRol}h | Ex Fest ${ratExf}h (regola: matura se ≥15 gg lavorati)`);
+
+  // ── 6b. ANALISI ANOMALIE TIMBRATURA ──
+  // Soglia: ore standard del dipendente + 2h
+  // Per ogni giorno lavorativo controlla le ore tracciate (non regolari)
+  // e classifica: assenza con anomalia precedente, assenza pura, anomalia senza assenza
+  setProgress(75,'Analisi anomalie timbratura...');
+
+  // Costruisce mappa giornaliera con ore tracciate per dipendente
+  const trcMap={}; // nome → { isoDate: minuti_tracciati }
+  const regMap={}; // nome → { isoDate: minuti_regolari }
+  data.forEach(r=>{
+    const nome=String(r[ci['Nome e Cognome']]||'').trim();
+    if(!nome)return;
+    const d=toDate(r[ci['Data']]); if(!d)return;
+    const isoD=iso(d);
+    const trcMin=parseMin(r[ci['Ore Tracciate']]);
+    const regMin=parseMin(r[ci['Ore Regolari']]);
+    if(!trcMap[nome]) trcMap[nome]={};
+    if(!regMap[nome]) regMap[nome]={};
+    trcMap[nome][isoD]=trcMin;
+    regMap[nome][isoD]=regMin;
+  });
+
+  // Lista ordinata dei giorni lavorativi del mese
+  const lavDays=[];
+  if(firstD){
+    const y=firstD.getFullYear(), mo=firstD.getMonth();
+    const dim=new Date(y,mo+1,0).getDate();
+    for(let d=1;d<=dim;d++){
+      const dt=new Date(y,mo,d);
+      const isoD=iso(dt);
+      if(isWD(dt)&&!HOLS.has(isoD)&&!isClosed(isoD)) lavDays.push(isoD);
+    }
+  }
+
+  // Per ogni dipendente costruisce la lista anomalie
+  const anomalie={}; // nome → [{tipo, data, oreTrc, oreReg, prevData, prevOreTrc, prevOreReg}]
+  detectedEmps.forEach(e=>{
+    const nome=e.nome;
+    const sogliaTrc=Math.round(((empHours[nome]||8)+2)*60); // standard+2h in minuti
+    const trc=trcMap[nome]||{};
+    const reg=regMap[nome]||{};
+    const tl=tlApprovedDays[nome]||new Set();
+    const lista=[];
+
+    lavDays.forEach((isoD,idx)=>{
+      const trcMin=trc[isoD]||0;
+      const regMin=reg[isoD]||0;
+      const isAbsent=(regMin===0&&(trc[isoD]===undefined||trcMin===0)&&!tl.has(isoD));
+      const isAnomalous=trcMin>sogliaTrc;
+
+      if(isAbsent){
+        // Cerca giorno lavorativo precedente
+        const prevIso=idx>0?lavDays[idx-1]:null;
+        const prevTrc=prevIso?(trcMap[nome]?.[prevIso]||0):0;
+        const prevReg=prevIso?(regMap[nome]?.[prevIso]||0):0;
+        const prevSoglia=sogliaTrc; // stessa soglia
+        const prevAnomalous=prevIso&&prevTrc>prevSoglia;
+
+        lista.push({
+          tipo: prevAnomalous?'assenza_anomala':'assenza_pura',
+          data: isoD,
+          oreTrc: trcMin>0?minsToStr(trcMin):'0h 00min',
+          oreReg: regMin>0?minsToStr(regMin):'0h 00min',
+          prevData: prevIso,
+          prevOreTrc: prevIso?minsToStr(prevTrc):'—',
+          prevOreReg: prevIso?minsToStr(prevReg):'—',
+        });
+      } else if(isAnomalous){
+        // Anomalia senza assenza il giorno dopo
+        const nextIso=idx<lavDays.length-1?lavDays[idx+1]:null;
+        const nextReg=nextIso?(regMap[nome]?.[nextIso]||0):0;
+        const nextTrc=nextIso?(trcMap[nome]?.[nextIso]||0):0;
+        const nextAbsent=nextIso&&nextReg===0&&nextTrc===0&&!tl.has(nextIso);
+        if(!nextAbsent){
+          lista.push({
+            tipo:'anomalia_sola',
+            data: isoD,
+            oreTrc: minsToStr(trcMin),
+            oreReg: minsToStr(regMin),
+            prevData: null,
+            prevOreTrc:'—',
+            prevOreReg:'—',
+          });
+        }
+      }
+    });
+
+    if(lista.length>0) anomalie[nome]=lista;
+  });
+
+  const nomiConAnom=Object.keys(anomalie).length;
+  addLog('ok',`✓ Analisi timbrature: ${nomiConAnom} dipendenti con anomalie rilevate`);
 
   // ── 7. BUILD OUTPUT ──
   setProgress(80,'Costruzione output Excel...');
@@ -1122,7 +1213,54 @@ function process(){
     }
   }
 
-  const wbOut=XLSX.utils.book_new();
+  // ── SEZIONE 4: ANOMALIE TIMBRATURA ──
+  let t4=`<table><thead><tr>
+    <th class="th-id">Dipendente</th>
+    <th class="th-red">Tipo</th>
+    <th class="th-red">Data</th>
+    <th class="th-blue">Giorno Prec. — Ore Regolari</th>
+    <th class="th-blue">Giorno Prec. — Ore Tracciate</th>
+    <th class="th-teal">Note</th>
+  </tr></thead><tbody>`;
+
+  let hasAnom=false;
+  detectedEmps.map(e=>e.nome).sort().forEach(nome=>{
+    const lista=anomalie[nome]||[];
+    if(!lista.length)return;
+    lista.forEach((a,i)=>{
+      hasAnom=true;
+      const nd='<span style="color:#ccc">—</span>';
+      let tipoBadge='', nota='';
+      if(a.tipo==='assenza_anomala'){
+        tipoBadge=`<span style="background:#FEF3E2;color:#B45309;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">⚠ Possibile errore timbratura</span>`;
+        nota='Il giorno precedente ha ore tracciate anomale. Verificare in Jibble se la timbratura di uscita è corretta prima di contestare l\'assenza.';
+      } else if(a.tipo==='assenza_pura'){
+        tipoBadge=`<span style="background:#FDECEA;color:#C0392B;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">🔴 Assenza ingiustificata</span>`;
+        nota='Il giorno precedente ha timbrature regolari. Assenza da verificare con il dipendente.';
+      } else {
+        tipoBadge=`<span style="background:#EBF0FA;color:#1B2F5C;font-weight:700;padding:2px 8px;border-radius:4px;font-size:11px">📋 Timbratura anomala</span>`;
+        nota='Ore tracciate superiori alla soglia (orario standard + 2h). Possibile dimenticanza di timbratura uscita. Nessuna assenza rilevata il giorno dopo.';
+      }
+      t4+=`<tr>
+        <td class="name">${i===0?nome:''}</td>
+        <td style="vertical-align:top;padding-top:10px">${tipoBadge}</td>
+        <td class="num">${itDate(a.data)}</td>
+        <td class="num">${a.prevData?itDate(a.prevData)+' — '+a.prevOreReg:nd}</td>
+        <td class="num">${a.prevData?a.prevOreTrc:nd}</td>
+        <td class="dates" style="font-size:10px;color:#555;max-width:220px;white-space:normal">${nota}</td>
+      </tr>`;
+    });
+  });
+
+  if(!hasAnom){
+    t4+=`<tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px">Nessuna anomalia rilevata</td></tr>`;
+  }
+  t4+=`</tbody></table>
+  <div style="margin-top:8px;font-size:10px;color:#888;font-style:italic">
+    Soglia anomalia: orario contrattuale + 2h (es. 10h per full-time, 6h 30min per Edda Aprile).
+    Le assenze precedute da timbratura anomala potrebbero essere causate da dimenticanza di timbratura uscita il giorno precedente —
+    verificare in Jibble prima di procedere con qualsiasi contestazione.
+  </div>`;
 
   // ══════════════════════════════════════════
   // FOGLIO 1: PRESENZE
@@ -1475,6 +1613,9 @@ function process(){
 
       <h2 class="violet">③ Saldi Ferie · ROL · Ex Festività</h2>
       ${t3}
+
+      <h2 style="background:#7B2020;color:white" class="">④ Anomalie Timbratura</h2>
+      ${t4}
 
       <div class="legend">
         <h3>Parametri utilizzati</h3>
