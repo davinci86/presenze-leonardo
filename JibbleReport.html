@@ -1214,6 +1214,11 @@ function process(){
   }
 
   // ══════════════════════════════════════════
+  // WORKBOOK EXCEL DI OUTPUT
+  // ══════════════════════════════════════════
+  const wbOut = XLSX.utils.book_new();
+
+  // ══════════════════════════════════════════
   // FOGLIO 1: PRESENZE
   // ══════════════════════════════════════════
   const rowsP=[['Dipendente','Codice','Gruppo','Ore Lavorate','Giorni Presenza','Straordinario','Assenze Ingiust. (date)','N° Assenze']];
